@@ -1,4 +1,4 @@
-import * as Ch from '../index.js'
+import * as Ch from '../cjs/index.js'
 import * as G from '@prelude/async-generator'
 
 test('simple', async () => {
