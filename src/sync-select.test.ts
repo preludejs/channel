@@ -1,4 +1,4 @@
-import * as Ch from '../cjs/index.js'
+import * as Ch from './index.js'
 
 test('1', async () => {
   const a = Ch.of<number>()
