@@ -9,7 +9,7 @@ test('simple', async () => {
   Ch.send(ch, 5).then(() => timeline.push([ 'sent', 5 ]))
   Ch.send(ch, 7).then(() => timeline.push([ 'sent', 7 ]))
 
-  for await (const value of G.take(3, ch)) {
+  for await (const value of G.take(3)(ch)) {
     timeline.push([ 'received', value ])
   }
 
