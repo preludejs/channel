@@ -1,24 +1,15 @@
-import type { Ch, Read } from './prelude.js'
-import readable from './readable.js'
-import write from './write.js'
+import { consume } from './internal/consume.js'
+import type { Channel } from './prelude.js'
 
-const _next =
-  <T>(ch: Ch<T>, rd: Read<T>): void => {
-    if (readable(ch)) {
-      rd(write(ch), false)
-      return
-    }
-    if (ch.done) {
-      rd([new Error('Channel closed.'), undefined, () => undefined], true)
-      return
-    }
-    ch.reads.push(rd)
-  }
-
-const next =
-  <T>(ch: Ch<T>): Promise<IteratorResult<T>> =>
-    new Promise((resolve, reject) => {
-      _next(ch, (_, done) => _[0] ? reject(_[0]) : resolve({ value: _[1], done }))
+export const next =
+  <T>(ch: Channel<T>): Promise<IteratorResult<T>> =>
+    new Promise(resolve => {
+      if (ch.done && ch.writes.length === 0) {
+        resolve({ done: true, value: undefined })
+        return
+      }
+      ch.reads.push(resolve)
+      if (ch.writes.length > 0) {
+        consume(ch)
+      }
     })
-
-export default next

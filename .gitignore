@@ -1,5 +1,6 @@
 *.js
+cjs
+mjs
 node_modules
 wip
-mjs
-cjs
+wip

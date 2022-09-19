@@ -1,17 +1,25 @@
-import type { Ch, Write } from './prelude.js'
+import { ChannelClosedError, type Channel } from './prelude.js'
+import { consume } from './internal/consume.js'
+import { consumeRead } from './internal/consume-read.js'
 
-/**
- * Picks write for processing.
- * @private
- */
-const write =
-  <T>(ch: Ch<T>): Write<T> => {
-    const wr = ch.writes.shift()
-    if (!wr) {
-      throw new Error('Expected write.')
-    }
-    wr[2]()
-    return wr
-  }
-
-export default write
+export const write =
+  <T>(ch: Channel<T>, value: T) =>
+    new Promise((resolve, reject) => {
+      if (ch.done) {
+        reject(new ChannelClosedError())
+        return
+      }
+      if (ch.cap === 0 && ch.reads.length > 0) {
+        consumeRead(ch, { value })
+        resolve(undefined)
+        return
+      } else if (ch.writes.length < ch.cap) {
+        ch.writes.push({ value })
+        resolve(undefined)
+        if (ch.reads.length > 0) {
+          consume(ch)
+        }
+        return
+      }
+      ch.writes.push({ value, enqueued: resolve })
+    })
