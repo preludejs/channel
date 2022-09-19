@@ -1,5 +1,4 @@
 import * as Ch from '../index.js'
-import * as G from '@prelude/async-generator'
 import { writeAfter } from './write-after.js'
 
 test('simple', async () => {
@@ -10,8 +9,12 @@ test('simple', async () => {
   Ch.write(ch, 5).then(() => timeline.push([ 'enqueued', 5 ]))
   Ch.write(ch, 7).then(() => timeline.push([ 'enqueued', 7 ]))
 
-  for await (const value of G.take(3)(ch)) {
+  let i = 0
+  for await (const value of ch) {
     timeline.push([ 'processed', value ])
+    if (++i === 3) {
+      break
+    }
   }
 
   expect(timeline).toEqual([
