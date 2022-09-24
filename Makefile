@@ -3,22 +3,22 @@ clean:
 
 build-cjs:
 	@rm -Rf cjs
-	@npx tsc -m commonjs -d --sourceMap --outDir cjs
+	pnpm exec tsc -m commonjs -d --sourceMap --outDir cjs
 	@echo '{"type":"commonjs"}' > cjs/package.json
 
 build-mjs:
 	@rm -Rf mjs
-	@npx tsc -d --sourceMap --outDir mjs
+	pnpm exec tsc -d --sourceMap --outDir mjs
 
 build: build-cjs build-mjs
 
 rebuild: clean build
 
 test: rebuild
-	@npx jest
+	pnpm exec jest
 
 update:
-	@npx npm-check --update --save-exact
+	pnpm up --latest
 
 postversion:
 	@git push

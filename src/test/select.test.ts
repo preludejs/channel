@@ -1,17 +1,14 @@
-import { spawn } from './test/spawn.js'
-import * as Ch from './index.js'
-import { sleep } from './test/sleep.js'
+import { sleep, spawn } from './test.js'
+import Ch from '../index.js'
 
 test('simple', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<number>()
-  Ch.write(a, 1)
-  Ch.write(b, 2)
+  const a = new Ch<number>
+  const b = new Ch<string>
+  a.writeIgnore(1)
+  b.writeIgnore('2')
   const g = Ch.select(a, b)
   const c = await g.next()
-  expect(a.writes.length === 0 || b.writes.length == 0).toBe(true)
   const d = await g.next()
-  expect(a.writes.length === 0 && b.writes.length == 0).toBe(true)
   if (c.value === 1) {
     expect(d.value).toEqual(2)
   } else {
@@ -20,8 +17,8 @@ test('simple', async () => {
 })
 
 test('select', async () => {
-  const a = Ch.of<number>(0)
-  const b = Ch.of<string>(0)
+  const a = new Ch<number>
+  const b = new Ch<string>
   const results: string[] = []
 
   spawn(3, async worker => {
@@ -35,9 +32,9 @@ test('select', async () => {
 
   for (let i = 0; i < 100; i++) {
     if (Math.random() > 0.5) {
-      Ch.write(a, i)
+      a.writeIgnore(i)
     } else {
-      Ch.write(b, i.toString())
+      b.writeIgnore(i.toString())
     }
   }
 

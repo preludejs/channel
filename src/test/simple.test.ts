@@ -1,13 +1,13 @@
-import * as Ch from '../index.js'
-import { writeAfter } from './write-after.js'
+import Ch from '../index.js'
+import { afterRandom } from './test.js'
 
 test('simple', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>
   const timeline: unknown[] = []
 
-  Ch.write(ch, 3).then(() => timeline.push([ 'enqueued', 3 ]))
-  Ch.write(ch, 5).then(() => timeline.push([ 'enqueued', 5 ]))
-  Ch.write(ch, 7).then(() => timeline.push([ 'enqueued', 7 ]))
+  ch.write(3).then(() => timeline.push([ 'enqueued', 3 ]))
+  ch.write(5).then(() => timeline.push([ 'enqueued', 5 ]))
+  ch.write(7).then(() => timeline.push([ 'enqueued', 7 ]))
 
   let i = 0
   for await (const value of ch) {
@@ -31,9 +31,9 @@ test('delayed receive', async () => {
 
   const delayedNumber =
     (value: number) => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>
       setTimeout(() => {
-        Ch.write(ch, value)
+        ch.write(value)
       }, Math.random() * 100)
       return ch
     }
@@ -41,14 +41,12 @@ test('delayed receive', async () => {
   const a = delayedNumber(3)
   const b = delayedNumber(5)
 
-  expect(await Ch.read(a) +  await Ch.read(b)).toEqual(8)
+  expect(await a.read() + await b.read()).toEqual(8)
 })
 
 test('two delayed writes, two reads', async () => {
-  const a = Ch.of<number>()
-  writeAfter(a, 3, Math.random() * 1000)
-    .catch(() => undefined)
-  writeAfter(a, 5, Math.random() * 1000)
-    .catch(() => undefined)
-  expect(await Ch.read(a) + await Ch.read(a)).toEqual(8)
+  const a = new Ch<number>
+  afterRandom(1000, () => a.write(3))
+  afterRandom(1000, () => a.write(5))
+  expect(await a.read() + await a.read()).toEqual(8)
 })
