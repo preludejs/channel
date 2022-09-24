@@ -10,7 +10,7 @@ test('simple', async () => {
   const c = await g.next()
   const d = await g.next()
   if (c.value === 1) {
-    expect(d.value).toEqual(2)
+    expect(d.value).toEqual('2')
   } else {
     expect(d.value).toEqual(1)
   }
