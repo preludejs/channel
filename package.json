@@ -1,10 +1,12 @@
 {
   "name": "@prelude/channel",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Channel module.",
   "type": "module",
   "main": "./cjs/index.js",
-  "files": [ "*" ],
+  "files": [
+    "*"
+  ],
   "scripts": {
     "test": "make test",
     "preversion": "make test",
