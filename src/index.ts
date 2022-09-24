@@ -23,7 +23,7 @@ export class WriteAttempt<T, R> extends AttemptBase {
   constructor(
     public readonly channel: Channel<T>,
     public readonly value: T,
-    public readonly perform: () => IteratorResult<R>
+    public readonly perform: (value: T) => IteratorResult<R>
   ) {
     super()
   }
@@ -223,6 +223,10 @@ export default class Channel<T> implements AsyncIterableIterator<T> {
     return values
   }
 
+  readAttempt<R>(perform: (result: IteratorResult<T>) => IteratorResult<R>) {
+    return new ReadAttempt(this, perform)
+  }
+
   write(value: T) {
     return new Promise<void>((resolve, reject) => {
       if (this.done) {
@@ -265,11 +269,21 @@ export default class Channel<T> implements AsyncIterableIterator<T> {
     this.write(value).catch(() => {})
   }
 
+  writeAttempt<R>(value: T, perform: (value: T) => IteratorResult<R>) {
+    return new WriteAttempt(this, value, perform)
+  }
+
+  static async selectNext<Attempts extends Attempt[]>(
+    ...attempts: Attempts
+  ): Promise<IteratorResult<Attempted<Attempts[number]>>> {
+    return this.#selectSync(attempts) ?? await this.#selectAsync(attempts)
+  }
+
   static async* select<Attempts extends Attempt[]>(
     ...attempts: Attempts
   ): AsyncGenerator<Attempted<Attempts[number]>> {
     while (true) {
-      const result = this.#selectSync(attempts) ?? await this.#selectAsync(attempts)
+      const result = await this.selectNext(...attempts)
       if (result.done) {
         break
       }
@@ -291,10 +305,10 @@ export default class Channel<T> implements AsyncIterableIterator<T> {
       } else if (attempt instanceof WriteAttempt) {
         if (attempt.channel.#cap === 0 && attempt.channel.#reads.length > 0) {
           attempt.channel.#consumeRead({ value: attempt.value })
-          return attempt.perform() as IteratorResult<Attempted<Attempts[number]>>
+          return attempt.perform(attempt.value) as IteratorResult<Attempted<Attempts[number]>>
         } else if (attempt.channel.#writes.length < attempt.channel.#cap) {
           attempt.channel.#writes.push({ value: attempt.value })
-          return attempt.perform() as IteratorResult<Attempted<Attempts[number]>>
+          return attempt.perform(attempt.value) as IteratorResult<Attempted<Attempts[number]>>
         }
       } else if (attempt instanceof ReadAttempt) {
         if (attempt.channel.#writes.length > 0) {
@@ -328,7 +342,7 @@ export default class Channel<T> implements AsyncIterableIterator<T> {
               reject(err)
               return
             }
-            resolve(attempt.perform() as IteratorResult<Attempted<Attempts[number]>>)
+            resolve(attempt.perform(attempt.value) as IteratorResult<Attempted<Attempts[number]>>)
           }}))
         } else if (attempt instanceof ReadAttempt) {
           undos.push(attempt.channel.#pushRead(result => {
