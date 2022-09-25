@@ -1,5 +1,6 @@
 .*
+*.test.*
 jest.*
 Makefile
-test
+test.*
 wip

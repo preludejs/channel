@@ -1,8 +1,8 @@
-import Ch from '../index.js'
+import * as Ch from './index.js'
 import { afterRandom } from './test.js'
 
 test('simple', async () => {
-  const ch = new Ch<number>
+  const ch = Ch.of<number>()
   const timeline: unknown[] = []
 
   ch.write(3).then(() => timeline.push([ 'enqueued', 3 ]))
@@ -31,7 +31,7 @@ test('delayed receive', async () => {
 
   const delayedNumber =
     (value: number) => {
-      const ch = new Ch<number>
+      const ch = Ch.of<number>()
       setTimeout(() => {
         ch.write(value)
       }, Math.random() * 100)
@@ -45,7 +45,7 @@ test('delayed receive', async () => {
 })
 
 test('two delayed writes, two reads', async () => {
-  const a = new Ch<number>
+  const a = Ch.of<number>()
   afterRandom(1000, () => a.write(3))
   afterRandom(1000, () => a.write(5))
   expect(await a.read() + await a.read()).toEqual(8)

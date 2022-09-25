@@ -1,9 +1,9 @@
 import { sleep, spawn } from './test.js'
-import Ch from '../index.js'
+import * as Ch from './index.js'
 
 test('simple', async () => {
-  const a = new Ch<number>
-  const b = new Ch<string>
+  const a = Ch.of<number>()
+  const b = Ch.of<string>()
   a.writeIgnore(1)
   b.writeIgnore('2')
   const g = Ch.select(a, b)
@@ -17,8 +17,8 @@ test('simple', async () => {
 })
 
 test('select', async () => {
-  const a = new Ch<number>
-  const b = new Ch<string>
+  const a = Ch.of<number>()
+  const b = Ch.of<string>()
   const results: string[] = []
 
   spawn(3, async worker => {

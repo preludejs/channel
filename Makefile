@@ -1,3 +1,6 @@
+test: rebuild
+	pnpm exec jest
+
 clean:
 	rm -Rf cjs mjs test/*.js
 
@@ -13,9 +16,6 @@ build-mjs:
 build: build-cjs build-mjs
 
 rebuild: clean build
-
-test: rebuild
-	pnpm exec jest
 
 update:
 	pnpm up --latest
