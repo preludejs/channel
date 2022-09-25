@@ -211,7 +211,7 @@ export class Channel<T> implements AsyncIterableIterator<T> {
   }
 
   /** @returns all values that was possible to read immediatelly, aka all pending writes. */
-  consumeReads(): T[] {
+  consumeWrites(): T[] {
     const values: T[] = []
     while (this.#writes.length > 0) {
       values.push(this.consumeWrite())
