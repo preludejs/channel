@@ -24,8 +24,8 @@ export function ofIterable<T>(iterable: Iterable<T>, cap = 0) {
   return ch
 }
 
-export function ofAsyncIterable<T>(asyncIterable: AsyncIterable<T>) {
-  const ch = new Channel<T>()
+export function ofAsyncIterable<T>(asyncIterable: AsyncIterable<T>, cap = 0) {
+  const ch = new Channel<T>(cap)
   const produce =
     async () => {
       for await (const value of asyncIterable) {

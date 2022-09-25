@@ -71,25 +71,6 @@ export class Channel<T> implements AsyncIterableIterator<T> {
     this.#doneWritingCallbacks = []
   }
 
-  /** @returns channel from provided async iterable with specified capacity. */
-  static ofAsyncIterable<T>(values: AsyncIterable<T>, cap = 0) {
-    const ch = new Channel<T>(cap)
-    const produce =
-      async () => {
-        for await (const value of values) {
-          if (ch.doneWriting) {
-            break
-          }
-          await ch.write(value)
-        }
-      }
-    produce()
-      .finally(() => {
-        ch.closeWriting()
-      })
-    return ch
-  }
-
   get cap() {
     return this.#cap
   }
@@ -273,7 +254,7 @@ export class Channel<T> implements AsyncIterableIterator<T> {
     })
   }
 
-  maybeWrite(value: T) {
+  async maybeWrite(value: T) {
     return this
       .write(value)
       .then(() => true)
