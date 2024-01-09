@@ -120,7 +120,7 @@ export class Channel<T> implements AsyncIterableIterator<T> {
    */
   closeWriting(err?: unknown) {
     if (this.#doneWriting) {
-      return
+      throw new Error('Channel already closed for writing.')
     }
     this.#doneWriting = true
     while (true) {
@@ -134,6 +134,12 @@ export class Channel<T> implements AsyncIterableIterator<T> {
       const write = this.#writes.pop() as Write<T>
       write.enqueued?.call(this, err)
       write.written?.call(this, err)
+    }
+    if (this.#writes.length === 0) {
+      while (this.#reads.length > 0) {
+        const read = this.#reads.pop() as Read<T>
+        read({ done: true, value: undefined })
+      }
     }
   }
 
