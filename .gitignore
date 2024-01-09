@@ -1,5 +1,6 @@
 *.js
 cjs
+coverage
 mjs
 node_modules
 wip
