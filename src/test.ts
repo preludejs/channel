@@ -1,4 +1,3 @@
-
 export function spawn(length: number, f: (worker: number) => Promise<void>) {
   return Promise.allSettled(Array.from({ length }, (_, index) => f(index)))
 }

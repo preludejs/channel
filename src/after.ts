@@ -1,4 +1,4 @@
-import { Channel } from './channel.js'
+import { Channel } from './class.js'
 
 /** @returns channel that closes after specified time in milliseconds. */
 export function after<T = unknown>(milliseconds: number) {

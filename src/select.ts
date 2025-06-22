@@ -1,4 +1,5 @@
-import { Channel, ReadAttempt, WriteAttempt, Attempt, Attempted, Thunk } from './channel.js'
+import { Channel, ReadAttempt, WriteAttempt, Attempt, Attempted } from './class.js'
+import { Thunk } from './channel.js'
 
 export async function* select<Attempts extends Attempt[]>(
   ...attempts: Attempts
@@ -15,48 +16,101 @@ export async function* select<Attempts extends Attempt[]>(
 export async function selectNext<Attempts extends Attempt[]>(
   ...attempts: Attempts
 ): Promise<IteratorResult<Attempted<Attempts[number]>>> {
-  return selectSync(attempts) ?? await selectAsync(attempts)
+  // Please note there is no time gap between maybeSelect and selectAsync setting up listeners.
+  //
+  // Single threaded nature of JavaScript runtime doesn't allow for any pre-emptive execution of other code before it completes.
+  //
+  // Function `maybeSelect` is synchronous.
+  //
+  // Function `selectAsync` is asynchronous, however it's setup involves creating Promise with callback
+  // that runs synchronously when the Promise is created.
+  //
+  // Therefore setup is done in syncronous code path which doesn't leave space for race conditions.
+  return maybeSelect(attempts) ?? (await selectAsync(attempts))
 }
 
 export function selectAsync<Attempts extends Attempt[]>(
   attempts: Attempts
 ): Promise<IteratorResult<Attempted<Attempts[number]>>> {
   return new Promise((resolve, reject) => {
+    // This callback executes synchronously when the Promise is created.
+    // All listener setup below happens immediately, with no opportunity
+    // for other code to preempt and create race conditions.
     const undos: Thunk[] = []
-    for (const attempt of attempts) {
-      if (attempt instanceof Channel) {
-        undos.push(attempt.pushRead(result => {
-          undos.forEach(undo => undo())
-          resolve(result as IteratorResult<Attempted<Attempts[number]>>)
-        }))
-      } else if (attempt instanceof WriteAttempt) {
-        undos.push(attempt.channel.pushWrite({ value: attempt.value, enqueued: (err: unknown) => {
-          undos.forEach(_ => _())
-          if (err) {
-            reject(err)
-            return
-          }
-          resolve(attempt.perform(attempt.value) as IteratorResult<Attempted<Attempts[number]>>)
-        }}))
-      } else if (attempt instanceof ReadAttempt) {
-        undos.push(attempt.channel.pushRead(result => {
-          undos.forEach(undo => undo())
-          resolve(attempt.perform(result) as IteratorResult<Attempted<Attempts[number]>>)
-        }))
-      } else {
-        throw new Error('Invalid attempt.')
+    let settled = false
+
+    const cleanup = () => {
+      if (settled) {
+        return
       }
+      settled = true
+      for (const undo of undos) {
+        try {
+          undo()
+        } catch (err) {
+          // Ignore cleanup errors to prevent masking the original error
+          console.warn('Error during select cleanup:', err)
+        }
+      }
+    }
+
+    const safeResolve = (value: IteratorResult<Attempted<Attempts[number]>>) => {
+      cleanup()
+      resolve(value)
+    }
+
+    const safeReject = (err: unknown) => {
+      cleanup()
+      reject(err)
+    }
+
+    try {
+      for (const attempt of attempts) {
+        if (attempt instanceof Channel) {
+          undos.push(
+            attempt.pushRead(result => {
+              safeResolve(result as IteratorResult<Attempted<Attempts[number]>>)
+            })
+          )
+        } else if (attempt instanceof WriteAttempt) {
+          undos.push(
+            attempt.channel.pushWrite({
+              value: attempt.value,
+              enqueued: (err: unknown) => {
+                if (err) {
+                  safeReject(err)
+                  return
+                }
+                safeResolve(attempt.perform(attempt.value) as IteratorResult<Attempted<Attempts[number]>>)
+              }
+            })
+          )
+        } else if (attempt instanceof ReadAttempt) {
+          undos.push(
+            attempt.channel.pushRead(result => {
+              safeResolve(attempt.perform(result) as IteratorResult<Attempted<Attempts[number]>>)
+            })
+          )
+        } else {
+          throw new Error('Invalid attempt.')
+        }
+      }
+    } catch (err) {
+      safeReject(err)
     }
   })
 }
 
-export function selectSync<Attempts extends Attempt[]>(
+export function maybeSelect<Attempts extends Attempt[]>(
   attempts: Attempts
 ): undefined | IteratorResult<Attempted<Attempts[number]>> {
   const n = attempts.length
+  // Create a copy to avoid mutating the original array
+  const shuffled = [...attempts]
+
   for (let i = 0; i < n; i++) {
     const j = i + Math.floor(Math.random() * (n - i))
-    const attempt = attempts[j] as Attempts[number]
+    const attempt = shuffled[j] as Attempts[number]
     if (attempt instanceof Channel) {
       if (attempt.pendingWrites > 0) {
         return { value: attempt.consumeWrite() }
@@ -77,8 +131,8 @@ export function selectSync<Attempts extends Attempt[]>(
     } else {
       throw new Error('Invalid attempt.')
     }
-    attempts[j] = attempts[i]
-    attempts[i] = attempt
+    shuffled[j] = shuffled[i]
+    shuffled[i] = attempt
   }
   return
 }

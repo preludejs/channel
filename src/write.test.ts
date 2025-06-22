@@ -15,3 +15,40 @@ test('two delayed writes, two reads', async () => {
   const b = await ch.read()
   expect(a + b).toEqual(8)
 })
+
+test('tryWrite should return true when write succeeds', async () => {
+  const ch = Ch.of<number>()
+
+  // Start a reader
+  const readPromise = ch.read()
+
+  // tryWrite should succeed
+  const result = await ch.tryWrite(42)
+  expect(result).toBe(true)
+
+  // Verify the value was written
+  expect(await readPromise).toBe(42)
+})
+
+test('tryWrite should return false when channel is closed', async () => {
+  const ch = Ch.of<number>()
+
+  // Close the channel
+  ch.closeWriting()
+
+  // tryWrite should fail gracefully
+  const result = await ch.tryWrite(42)
+  expect(result).toBe(false)
+})
+
+test('tryWrite should succeed with buffered channels', async () => {
+  const ch = Ch.of<number>(2)
+
+  // Should succeed up to buffer capacity
+  expect(await ch.tryWrite(1)).toBe(true)
+  expect(await ch.tryWrite(2)).toBe(true)
+
+  // Verify values are in buffer
+  expect(await ch.read()).toBe(1)
+  expect(await ch.read()).toBe(2)
+})
