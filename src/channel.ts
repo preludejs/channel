@@ -212,6 +212,26 @@ export const write = <T>(channel: Channel<T>, value: T): Promise<void> => {
 }
 
 /**
+ * Attempts to write a value to the channel without throwing.
+ * @returns Promise<boolean> - true if write succeeded, false if channel is closed
+ */
+export const maybeWrite = async <T>(channel: Channel<T>, value: T): Promise<boolean> => {
+  try {
+    await write(channel, value)
+    return true
+  } catch {
+    return false
+  }
+}
+
+/** Attempts to write a value to the channel ignoring result. */
+export const writeIgnore = <T>(channel: Channel<T>, value: T): void => {
+  write(channel, value).catch(() => {
+    // no-op
+  })
+}
+
+/**
  * Registers callback to be called when channel has done writing.
  * Callback is called immediatelly if channel is already closed for writing.
  * @returns undo function that unregisters callback.

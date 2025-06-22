@@ -159,27 +159,17 @@ export class Channel<T> implements AsyncIterableIterator<T> {
     return Ch.write(this, value)
   }
 
-  async maybeWrite(value: T) {
-    return this.write(value)
-      .then(() => true)
-      .catch(() => false)
-  }
-
-  writeIgnore(value: T) {
-    this.write(value).catch(() => {})
-  }
-
   /**
    * Attempts to write a value to the channel without throwing.
-   * @returns Promise<boolean> - true if write succeeded, false if channel is closed
+   * @returns `true` if write succeeded, `false` otherwise (ie. if channel is closed).
    */
-  async tryWrite(value: T): Promise<boolean> {
-    try {
-      await this.write(value)
-      return true
-    } catch {
-      return false
-    }
+  maybeWrite(value: T): Promise<boolean> {
+    return Ch.maybeWrite(this, value)
+  }
+
+  /** Attempts to write a value to the channel ignoring result. */
+  writeIgnore(value: T): void {
+    Ch.writeIgnore(this, value)
   }
 
   writeAttempt<R>(value: T, perform: (value: T) => IteratorResult<R>) {

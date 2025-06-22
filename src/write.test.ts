@@ -22,8 +22,8 @@ test('tryWrite should return true when write succeeds', async () => {
   // Start a reader
   const readPromise = ch.read()
 
-  // tryWrite should succeed
-  const result = await ch.tryWrite(42)
+  // maybeWrite should succeed
+  const result = await ch.maybeWrite(42)
   expect(result).toBe(true)
 
   // Verify the value was written
@@ -37,7 +37,7 @@ test('tryWrite should return false when channel is closed', async () => {
   ch.closeWriting()
 
   // tryWrite should fail gracefully
-  const result = await ch.tryWrite(42)
+  const result = await ch.maybeWrite(42)
   expect(result).toBe(false)
 })
 
@@ -45,8 +45,8 @@ test('tryWrite should succeed with buffered channels', async () => {
   const ch = Ch.of<number>(2)
 
   // Should succeed up to buffer capacity
-  expect(await ch.tryWrite(1)).toBe(true)
-  expect(await ch.tryWrite(2)).toBe(true)
+  await expect(ch.maybeWrite(1)).resolves.toBe(true)
+  await expect(ch.maybeWrite(2)).resolves.toBe(true)
 
   // Verify values are in buffer
   expect(await ch.read()).toBe(1)
