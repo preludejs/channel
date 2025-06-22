@@ -1,4 +1,4 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 
 // Demonstrate JS vs Go semantics for async iteration
 async function demonstrateSemantics() {
@@ -9,7 +9,7 @@ async function demonstrateSemantics() {
 
   // JS semantics (default)
   console.log('   JS semantics (default iterator):')
-  const ch1js = Ch.of<number>()
+  const ch1js = new Ch<number>()
   ch1js.writeIgnore(1)
   ch1js.writeIgnore(2)
   ch1js.writeIgnore(3)
@@ -27,7 +27,7 @@ async function demonstrateSemantics() {
 
   // Go semantics (.range)
   console.log('   Go semantics (.range iterator):')
-  const ch1go = Ch.of<number>()
+  const ch1go = new Ch<number>()
   ch1go.writeIgnore(1)
   ch1go.writeIgnore(2)
   ch1go.writeIgnore(3)
@@ -50,7 +50,7 @@ async function demonstrateSemantics() {
 
   // JS semantics
   console.log('   JS semantics (default iterator):')
-  const ch2js = Ch.of<string>()
+  const ch2js = new Ch<string>()
   ch2js.writeIgnore('a')
   ch2js.writeIgnore('b')
 
@@ -64,7 +64,7 @@ async function demonstrateSemantics() {
 
   // Go semantics
   console.log('   Go semantics (.range iterator):')
-  const ch2go = Ch.of<string>()
+  const ch2go = new Ch<string>()
   ch2go.writeIgnore('a')
   ch2go.writeIgnore('b')
 
@@ -80,7 +80,7 @@ async function demonstrateSemantics() {
 
   // 3. Normal iteration until channel is closed (same for both)
   console.log('3. Normal iteration until channel is closed (same behavior):')
-  const ch3 = Ch.of<number>()
+  const ch3 = new Ch<number>()
 
   // Simulate producer goroutine
   setTimeout(() => {
@@ -114,7 +114,7 @@ async function demonstrateSemantics() {
 
   // JS semantics - first iterator return() closes channel
   console.log('   JS semantics (default iterators):')
-  const ch4js = Ch.of<number>()
+  const ch4js = new Ch<number>()
   ch4js.writeIgnore(100)
   ch4js.writeIgnore(200)
   ch4js.writeIgnore(300)
@@ -133,7 +133,7 @@ async function demonstrateSemantics() {
 
   // Go semantics - iterator return() doesn't close channel
   console.log('   Go semantics (.range iterators):')
-  const ch4go = Ch.of()
+  const ch4go = new Ch()
   ch4go.writeIgnore(100)
   ch4go.writeIgnore(200)
   ch4go.writeIgnore(300)
@@ -159,7 +159,7 @@ async function demonstrateSemantics() {
 
   // JS semantics
   console.log('   JS semantics (default iterator):')
-  const ch5js = Ch.of<number | string>(3)
+  const ch5js = new Ch<number | string>(3)
   ch5js.writeIgnore(100)
   ch5js.writeIgnore('y')
   ch5js.writeIgnore('z')
@@ -177,7 +177,7 @@ async function demonstrateSemantics() {
 
   // Go semantics
   console.log('   Go semantics (.range iterator):')
-  const ch5go = Ch.of<string>(3)
+  const ch5go = new Ch<string>(3)
   ch5go.writeIgnore('x')
   ch5go.writeIgnore('y')
   ch5go.writeIgnore('z')

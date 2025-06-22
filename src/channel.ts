@@ -17,6 +17,7 @@ export type Write<T> = {
 }
 
 export type Channel<T> = AsyncIterableIterator<T> & {
+  type: 'Channel'
   cap: number
   doneWriting: boolean
   reads: Read<T>[]
@@ -25,6 +26,54 @@ export type Channel<T> = AsyncIterableIterator<T> & {
 }
 
 export { Channel as T }
+
+export type ReadAttempt<T, R> = {
+  type: 'ReadAttempt'
+  channel: Channel<T>
+  perform: (result: IteratorResult<T>) => IteratorResult<R>
+}
+
+export type WriteAttempt<T, R> = {
+  type: 'WriteAttempt'
+  channel: Channel<T>
+  value: T
+  perform: (value: T) => IteratorResult<R>
+}
+
+export type Attempt = Channel<any> | ReadAttempt<any, any> | WriteAttempt<any, any>
+
+export type Attempted<A extends Attempt> =
+  A extends Channel<infer T>
+    ? T
+    : A extends ReadAttempt<any, infer R>
+      ? R
+      : A extends WriteAttempt<any, infer R>
+        ? R
+        : never
+
+export const readAttempt = <T, R>(
+  channel: Channel<T>,
+  perform: (result: IteratorResult<T>) => IteratorResult<R>
+): ReadAttempt<T, R> => {
+  return {
+    type: 'ReadAttempt',
+    channel,
+    perform
+  }
+}
+
+export const writeAttempt = <T, R>(
+  channel: Channel<T>,
+  value: T,
+  perform: (value: T) => IteratorResult<R>
+): WriteAttempt<T, R> => {
+  return {
+    type: 'WriteAttempt',
+    channel,
+    value,
+    perform
+  }
+}
 
 /** @returns `true` if channels has been closed and there are no pending writes. */
 export const done = <T>(channel: Channel<T>) => channel.doneWriting && channel.writes.length === 0
@@ -137,6 +186,7 @@ const throw_ = async <T>(channel: Channel<T>, err?: any) => {
 export { throw_ as throw }
 
 export const of = <T>(cap = 0): Channel<T> => ({
+  type: 'Channel',
   cap,
   doneWriting: false,
   reads: [],
@@ -155,6 +205,46 @@ export const of = <T>(cap = 0): Channel<T> => ({
     return throw_(this, err)
   }
 })
+
+export const ofIterable = <T, R extends Channel<T>>(
+  iterable: Iterable<T>,
+  cap = 0,
+  constructor: (cap?: number) => R = of as any
+): R => {
+  const channel = constructor(cap)
+  const produce = async () => {
+    for (const value of iterable) {
+      if (channel.doneWriting) {
+        break
+      }
+      await Promise.resolve().then(() => write(channel, value))
+    }
+  }
+  produce().finally(() => {
+    closeWriting(channel)
+  })
+  return channel
+}
+
+export const ofAsyncIterable = <T, R extends Channel<T> = Channel<T>>(
+  asyncIterable: AsyncIterable<T>,
+  cap = 0,
+  constructor: (cap?: number) => R = of as any
+): R => {
+  const channel = constructor(cap)
+  const produce = async () => {
+    for await (const value of asyncIterable) {
+      if (channel.doneWriting) {
+        break
+      }
+      await write(channel, value)
+    }
+  }
+  produce().finally(() => {
+    closeWriting(channel)
+  })
+  return channel
+}
 
 export const consumeRead = <T>(channel: Channel<T>, result: IteratorResult<T>): void => {
   const read = channel.reads.shift()
@@ -382,4 +472,148 @@ export const pushWrite = <T>(channel: Channel<T>, write: Write<T>): Undo => {
   return () => {
     removeWrite(channel, write)
   }
+}
+
+export async function* select<Attempts extends Attempt[]>(
+  ...attempts: Attempts
+): AsyncGenerator<Attempted<Attempts[number]>> {
+  while (true) {
+    const result = await selectNext(...attempts)
+    if (result.done) {
+      break
+    }
+    yield result.value
+  }
+}
+
+export async function selectNext<Attempts extends Attempt[]>(
+  ...attempts: Attempts
+): Promise<IteratorResult<Attempted<Attempts[number]>>> {
+  // Please note there is no time gap between maybeSelect and selectAsync setting up listeners.
+  //
+  // Single threaded nature of JavaScript runtime doesn't allow for any pre-emptive execution of other code before it completes.
+  //
+  // Function `maybeSelect` is synchronous.
+  //
+  // Function `selectAsync` is asynchronous, however it's setup involves creating Promise with callback
+  // that runs synchronously when the Promise is created.
+  //
+  // Therefore setup is done in syncronous code path which doesn't leave space for race conditions.
+  return maybeSelect(attempts) ?? (await selectAsync(attempts))
+}
+
+export function selectAsync<Attempts extends Attempt[]>(
+  attempts: Attempts
+): Promise<IteratorResult<Attempted<Attempts[number]>>> {
+  return new Promise((resolve, reject) => {
+    // This callback executes synchronously when the Promise is created.
+    // All listener setup below happens immediately, with no opportunity
+    // for other code to preempt and create race conditions.
+    const undos: Thunk[] = []
+    let settled = false
+
+    const cleanup = () => {
+      if (settled) {
+        return
+      }
+      settled = true
+      for (const undo of undos) {
+        try {
+          undo()
+        } catch (err) {
+          // Ignore cleanup errors to prevent masking the original error
+          console.warn('Error during select cleanup:', err)
+        }
+      }
+    }
+
+    const safeResolve = (value: IteratorResult<Attempted<Attempts[number]>>) => {
+      cleanup()
+      resolve(value)
+    }
+
+    const safeReject = (err: unknown) => {
+      cleanup()
+      reject(err)
+    }
+
+    try {
+      for (const attempt of attempts) {
+        switch (attempt.type) {
+          case 'Channel':
+            undos.push(
+              pushRead(attempt, result => {
+                safeResolve(result as IteratorResult<Attempted<Attempts[number]>>)
+              })
+            )
+            break
+          case 'WriteAttempt':
+            undos.push(
+              pushWrite(attempt.channel, {
+                value: attempt.value,
+                enqueued: (err: unknown) => {
+                  if (err) {
+                    safeReject(err)
+                    return
+                  }
+                  safeResolve(attempt.perform(attempt.value) as IteratorResult<Attempted<Attempts[number]>>)
+                }
+              })
+            )
+            break
+          case 'ReadAttempt':
+            undos.push(
+              pushRead(attempt.channel, result => {
+                safeResolve(attempt.perform(result) as IteratorResult<Attempted<Attempts[number]>>)
+              })
+            )
+            break
+          default:
+            throw new Error('Invalid attempt.')
+        }
+      }
+    } catch (err) {
+      safeReject(err)
+    }
+  })
+}
+
+export function maybeSelect<Attempts extends Attempt[]>(
+  attempts: Attempts
+): undefined | IteratorResult<Attempted<Attempts[number]>> {
+  const n = attempts.length
+  // Create a copy to avoid mutating the original array
+  const shuffled = [...attempts]
+
+  for (let i = 0; i < n; i++) {
+    const j = i + Math.floor(Math.random() * (n - i))
+    const attempt = shuffled[j] as Attempts[number]
+    switch (attempt.type) {
+      case 'Channel':
+        if (attempt.writes.length > 0) {
+          return { value: consumeWrite(attempt) }
+        }
+        break
+      case 'WriteAttempt':
+        if (attempt.channel.cap === 0 && attempt.channel.reads.length > 0) {
+          consumeRead(attempt.channel, { value: attempt.value })
+          return attempt.perform(attempt.value)
+        } else if (attempt.channel.writes.length < attempt.channel.cap) {
+          pushWrite(attempt.channel, { value: attempt.value })
+          return attempt.perform(attempt.value)
+        }
+        break
+      case 'ReadAttempt':
+        if (attempt.channel.writes.length > 0) {
+          const value = consumeWrite(attempt.channel)
+          return attempt.perform({ value })
+        }
+        break
+      default:
+        throw new Error('Invalid attempt.')
+    }
+    shuffled[j] = shuffled[i]
+    shuffled[i] = attempt
+  }
+  return
 }

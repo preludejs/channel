@@ -1,9 +1,9 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 
 describe('maybeSelect', () => {
   test('should return result immediately when data is available', () => {
-    const ch1 = Ch.of<number>(1)
-    const ch2 = Ch.of<string>(1)
+    const ch1 = new Ch<number>(1)
+    const ch2 = new Ch<string>(1)
 
     ch1.writeIgnore(42)
     ch2.writeIgnore('hello')
@@ -15,15 +15,15 @@ describe('maybeSelect', () => {
   })
 
   test('should return undefined when no data is available (default case)', () => {
-    const ch1 = Ch.of<number>()
-    const ch2 = Ch.of<string>()
+    const ch1 = new Ch<number>()
+    const ch2 = new Ch<string>()
 
     const result = Ch.maybeSelect([ch1, ch2])
     expect(result).toBeUndefined()
   })
 
   test('should work with WriteAttempts on buffered channels', () => {
-    const ch = Ch.of<number>(1)
+    const ch = new Ch<number>(1)
 
     const writeAttempt = ch.writeAttempt(99, value => ({
       value: `wrote: ${value}`
@@ -36,7 +36,7 @@ describe('maybeSelect', () => {
   })
 
   test('should work with ReadAttempts', () => {
-    const ch = Ch.of<string>()
+    const ch = new Ch<string>()
     ch.writeIgnore('test data')
 
     const readAttempt = ch.readAttempt(result => ({
@@ -50,7 +50,7 @@ describe('maybeSelect', () => {
   })
 
   test('should return undefined for WriteAttempts on full unbuffered channels', () => {
-    const ch = Ch.of<number>() // unbuffered
+    const ch = new Ch<number>() // unbuffered
 
     const writeAttempt = ch.writeAttempt(42, value => ({ value }))
 
@@ -59,8 +59,8 @@ describe('maybeSelect', () => {
   })
 
   test('should handle mixed attempts correctly', () => {
-    const ch1 = Ch.of<number>(1)
-    const ch2 = Ch.of<string>()
+    const ch1 = new Ch<number>(1)
+    const ch2 = new Ch<string>()
 
     // Pre-fill buffered channel
     ch1.writeIgnore(123)
@@ -77,7 +77,7 @@ describe('maybeSelect', () => {
   })
 
   test('should consume multiple values from buffered channels', () => {
-    const ch = Ch.of<number>(3)
+    const ch = new Ch<number>(3)
 
     ch.writeIgnore(1)
     ch.writeIgnore(2)
@@ -99,7 +99,7 @@ describe('maybeSelect', () => {
   })
 
   test('should randomize selection when multiple channels have data', () => {
-    const channels = [Ch.of<number>(1), Ch.of<number>(1), Ch.of<number>(1)]
+    const channels = [new Ch<number>(1), new Ch<number>(1), new Ch<number>(1)]
 
     // Fill all channels with different values
     channels[0].writeIgnore(0)
@@ -125,7 +125,7 @@ describe('maybeSelect', () => {
   })
 
   test('should work with closed channels that have buffered data', () => {
-    const ch = Ch.of<string>(2)
+    const ch = new Ch<string>(2)
 
     ch.writeIgnore('first')
     ch.writeIgnore('second')
@@ -151,8 +151,8 @@ describe('maybeSelect', () => {
 
   test('should be equivalent to Go select with default case', () => {
     // This test demonstrates the Go equivalence
-    const ch1 = Ch.of<number>()
-    const ch2 = Ch.of<string>(1)
+    const ch1 = new Ch<number>()
+    const ch2 = new Ch<string>(1)
 
     // Fill one channel
     ch2.writeIgnore('available')

@@ -1,9 +1,9 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 
 describe('Async Iteration', () => {
   describe('Default JS Semantics', () => {
     test('breaking out of for-await loop should close the channel (JS semantics)', async () => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>()
 
       // Write some values
       ch.writeIgnore(1)
@@ -27,7 +27,7 @@ describe('Async Iteration', () => {
     })
 
     test('iterator return should close channel (JS semantics)', async () => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>()
 
       ch.writeIgnore(1)
       ch.writeIgnore(2)
@@ -51,7 +51,7 @@ describe('Async Iteration', () => {
 
   describe('Go Semantics via .range', () => {
     test('breaking out of range iteration should not close the channel', async () => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>()
 
       // Write some values
       ch.writeIgnore(1)
@@ -79,7 +79,7 @@ describe('Async Iteration', () => {
     })
 
     test('range iterator return should not close channel', async () => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>()
 
       ch.writeIgnore(1)
       ch.writeIgnore(2)
@@ -104,7 +104,7 @@ describe('Async Iteration', () => {
     })
 
     test('range iterator throw should not close channel', async () => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>()
 
       ch.writeIgnore(1)
       ch.writeIgnore(2)
@@ -131,7 +131,7 @@ describe('Async Iteration', () => {
 
   describe('Common Behavior', () => {
     test('normal iteration until channel is closed', async () => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>()
 
       // Write values with delay to allow iteration to start
       setTimeout(() => ch.writeIgnore(1), 10)
@@ -152,7 +152,7 @@ describe('Async Iteration', () => {
     })
 
     test('iteration with buffered channel', async () => {
-      const ch = Ch.of<number>(3)
+      const ch = new Ch<number>(3)
 
       // Fill buffer
       ch.writeIgnore(1)
@@ -170,7 +170,7 @@ describe('Async Iteration', () => {
     })
 
     test('early break with buffered channel and range should not close channel', async () => {
-      const ch = Ch.of<number>(3)
+      const ch = new Ch<number>(3)
 
       // Fill buffer
       ch.writeIgnore(1)
@@ -194,7 +194,7 @@ describe('Async Iteration', () => {
     })
 
     test('multiple range iterators on same channel', async () => {
-      const ch = Ch.of<number>()
+      const ch = new Ch<number>()
 
       ch.writeIgnore(1)
       ch.writeIgnore(2)

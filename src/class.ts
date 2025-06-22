@@ -1,39 +1,8 @@
 import type { Undo, Done, Read, Write } from './channel.js'
 import * as Ch from './channel.js'
 
-export class AttemptBase {}
-
-export class ReadAttempt<T, R> extends AttemptBase {
-  constructor(
-    public readonly channel: Channel<T>,
-    public readonly perform: (result: IteratorResult<T>) => IteratorResult<R>
-  ) {
-    super()
-  }
-}
-
-export class WriteAttempt<T, R> extends AttemptBase {
-  constructor(
-    public readonly channel: Channel<T>,
-    public readonly value: T,
-    public readonly perform: (value: T) => IteratorResult<R>
-  ) {
-    super()
-  }
-}
-
-export type Attempt = Channel<any> | ReadAttempt<any, any> | WriteAttempt<any, any>
-
-export type Attempted<A extends Attempt> =
-  A extends Channel<infer T>
-    ? T
-    : A extends ReadAttempt<any, infer R>
-      ? R
-      : A extends WriteAttempt<any, infer R>
-        ? R
-        : never
-
-export class Channel<T> implements AsyncIterableIterator<T> {
+export class Class<T> implements AsyncIterableIterator<T> {
+  readonly type = 'Channel'
   cap: number
   doneWriting: boolean
   reads: Read<T>[]
@@ -46,6 +15,18 @@ export class Channel<T> implements AsyncIterableIterator<T> {
     this.reads = []
     this.writes = []
     this.doneWritingCallbacks = []
+  }
+
+  static of<T>(cap = 0) {
+    return new Class<T>(cap)
+  }
+
+  static ofIterable<T>(iterable: Iterable<T>, cap = 0) {
+    return Ch.ofIterable(iterable, cap, Class.of)
+  }
+
+  static ofAsyncIterable<T>(iterable: AsyncIterable<T>, cap = 0) {
+    return Ch.ofAsyncIterable(iterable, cap, Class.of)
   }
 
   /** @returns number of pending reads. */
@@ -148,7 +129,7 @@ export class Channel<T> implements AsyncIterableIterator<T> {
   }
 
   readAttempt<R>(perform: (result: IteratorResult<T>) => IteratorResult<R>) {
-    return new ReadAttempt(this, perform)
+    return Ch.readAttempt<T, R>(this, perform)
   }
 
   write(value: T) {
@@ -169,7 +150,7 @@ export class Channel<T> implements AsyncIterableIterator<T> {
   }
 
   writeAttempt<R>(value: T, perform: (value: T) => IteratorResult<R>) {
-    return new WriteAttempt(this, value, perform)
+    return Ch.writeAttempt<T, R>(this, value, perform)
   }
 
   /**
@@ -195,6 +176,24 @@ export class Channel<T> implements AsyncIterableIterator<T> {
   consumeWrite(): T {
     return Ch.consumeWrite(this)
   }
+
+  static async *select<Attempts extends Ch.Attempt[]>(
+    ...attempts: Attempts
+  ): AsyncGenerator<Ch.Attempted<Attempts[number]>> {
+    yield* Ch.select(...attempts)
+  }
+
+  static async selectNext<Attempts extends Ch.Attempt[]>(
+    ...attempts: Attempts
+  ): Promise<IteratorResult<Ch.Attempted<Attempts[number]>>> {
+    return Ch.selectNext(...attempts)
+  }
+
+  static maybeSelect<Attempts extends Ch.Attempt[]>(
+    attempts: Attempts
+  ): undefined | IteratorResult<Ch.Attempted<Attempts[number]>> {
+    return Ch.maybeSelect(attempts)
+  }
 }
 
-export default Channel
+export default Class

@@ -1,5 +1,4 @@
 export * from './class.js'
-export * from './of.js'
+export * from './channel.js'
 export * from './after.js'
-export * from './select.js'
 export { default } from './class.js'

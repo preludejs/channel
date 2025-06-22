@@ -1,9 +1,9 @@
 import { sleep, spawn } from './test.js'
-import * as Ch from './index.js'
+import Ch from './index.js'
 
 test('simple', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>()
+  const a = new Ch<number>()
+  const b = new Ch<string>()
   a.writeIgnore(1)
   b.writeIgnore('2')
   const g = Ch.select(a, b)
@@ -17,8 +17,8 @@ test('simple', async () => {
 })
 
 test('select', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>()
+  const a = new Ch<number>()
+  const b = new Ch<string>()
   const results: string[] = []
 
   spawn(3, async worker => {
@@ -44,8 +44,8 @@ test('select', async () => {
 })
 
 test('selectNext with immediate values', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>()
+  const a = new Ch<number>()
+  const b = new Ch<string>()
 
   // Write values immediately
   a.writeIgnore(42)
@@ -63,8 +63,8 @@ test('selectNext with immediate values', async () => {
 })
 
 test('selectNext with closed channels', async () => {
-  const a = Ch.of<number>(1) // Use buffered channels
-  const b = Ch.of<string>(1)
+  const a = new Ch<number>(1) // Use buffered channels
+  const b = new Ch<string>(1)
 
   a.writeIgnore(1)
   b.writeIgnore('hello')
@@ -88,8 +88,8 @@ test('selectNext with closed channels', async () => {
 })
 
 test('maybeSelect with buffered channels', async () => {
-  const a = Ch.of<number>(2)
-  const b = Ch.of<string>(2)
+  const a = new Ch<number>(2)
+  const b = new Ch<string>(2)
 
   // Fill buffers
   a.writeIgnore(1)
@@ -113,8 +113,8 @@ test('maybeSelect with buffered channels', async () => {
 })
 
 test('select with ReadAttempts', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>()
+  const a = new Ch<number>()
+  const b = new Ch<string>()
 
   const readA = a.readAttempt(result =>
     result.done ? { done: true, value: undefined } : { value: `number: ${result.value}` }
@@ -138,8 +138,8 @@ test('select with ReadAttempts', async () => {
 })
 
 test('select with WriteAttempts', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>()
+  const a = new Ch<number>()
+  const b = new Ch<string>()
 
   const writeA = a.writeAttempt(100, value => ({ value: `wrote number: ${value}` }))
   const writeB = b.writeAttempt('test', value => ({ value: `wrote string: ${value}` }))
@@ -164,7 +164,7 @@ test('select with WriteAttempts', async () => {
 })
 
 test('select with WriteAttempts on buffered channels', async () => {
-  const a = Ch.of<number>(1) // Buffered channel
+  const a = new Ch<number>(1) // Buffered channel
 
   const writeAttempt = a.writeAttempt(42, value => ({ value: `buffered: ${value}` }))
 
@@ -177,8 +177,8 @@ test('select with WriteAttempts on buffered channels', async () => {
 })
 
 test('select with mixed attempts', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>(1)
+  const a = new Ch<number>()
+  const b = new Ch<string>(1)
 
   // Pre-fill buffered channel
   b.writeIgnore('existing')
@@ -198,8 +198,8 @@ test('select with mixed attempts', async () => {
 })
 
 test('select with empty channels becomes async', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>()
+  const a = new Ch<number>()
+  const b = new Ch<string>()
 
   // No immediate values available
   const syncResult = Ch.maybeSelect([a, b])
@@ -217,8 +217,8 @@ test('select with empty channels becomes async', async () => {
 })
 
 test('select generator with early termination', async () => {
-  const a = Ch.of<number>(2) // Use buffered channels
-  const b = Ch.of<string>(1)
+  const a = new Ch<number>(2) // Use buffered channels
+  const b = new Ch<string>(1)
 
   // Write values and close
   a.writeIgnore(1)
@@ -240,7 +240,7 @@ test('select generator with early termination', async () => {
 })
 
 test('select with multiple buffered channels', async () => {
-  const channels = [Ch.of<number>(2), Ch.of<number>(2), Ch.of<number>(2)]
+  const channels = [new Ch<number>(2), new Ch<number>(2), new Ch<number>(2)]
 
   // Fill all buffers partially
   channels[0].writeIgnore(10)
@@ -267,8 +267,8 @@ test('select with multiple buffered channels', async () => {
 })
 
 test('selectNext with empty closed channels should resolve immediately', async () => {
-  const a = Ch.of<number>()
-  const b = Ch.of<string>()
+  const a = new Ch<number>()
+  const b = new Ch<string>()
 
   // Close both channels without writing anything
   a.closeWriting()
@@ -282,7 +282,7 @@ test('selectNext with empty closed channels should resolve immediately', async (
 
 test('maybeSelect prioritizes random selection', async () => {
   // Test that maybeSelect randomizes selection when multiple channels have data
-  const channels = [Ch.of<number>(1), Ch.of<number>(1), Ch.of<number>(1)]
+  const channels = [new Ch<number>(1), new Ch<number>(1), new Ch<number>(1)]
 
   // Fill all channels
   channels[0].writeIgnore(0)
@@ -307,7 +307,7 @@ test('maybeSelect prioritizes random selection', async () => {
 })
 
 test('select error handling with closed channel writes', async () => {
-  const a = Ch.of<number>()
+  const a = new Ch<number>()
 
   a.closeWriting()
 

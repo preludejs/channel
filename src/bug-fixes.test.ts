@@ -1,9 +1,9 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 
 describe('Bug Fixes', () => {
   test('Bug #1: maybeRead should return correct values', async () => {
     // Test with buffered channel
-    const ch = Ch.of<number>(2)
+    const ch = new Ch<number>(2)
 
     // Write values and close
     ch.writeIgnore(42)
@@ -23,7 +23,7 @@ describe('Bug Fixes', () => {
   })
 
   test('Bug #2: closeWriting should be idempotent', async () => {
-    const ch = Ch.of<number>()
+    const ch = new Ch<number>()
     expect(ch.doneWriting).toBe(false)
 
     // First close should work
@@ -40,7 +40,7 @@ describe('Bug Fixes', () => {
   })
 
   test('Bug #3: removeWrite should handle buffered channels correctly', async () => {
-    const ch = Ch.of<number>(1)
+    const ch = new Ch<number>(1)
 
     // This test verifies that the internal removeWrite method
     // properly handles callback invocation for buffered channels
@@ -66,7 +66,7 @@ describe('Bug Fixes', () => {
   })
 
   test('Bug #4: maybeSelect should handle WriteAttempt for buffered channels correctly', async () => {
-    const ch = Ch.of<number>(2)
+    const ch = new Ch<number>(2)
 
     // Create a write attempt
     const writeAttempt = ch.writeAttempt(42, value => ({ value: value * 2 }))
@@ -85,7 +85,7 @@ describe('Bug Fixes', () => {
 
   test('All bugs fixed: comprehensive integration test', async () => {
     // Test maybeRead with proper behavior
-    const ch1 = Ch.of<string>(1)
+    const ch1 = new Ch<string>(1)
     ch1.writeIgnore('hello')
     ch1.closeWriting()
 
@@ -93,7 +93,7 @@ describe('Bug Fixes', () => {
     expect(await ch1.maybeRead()).toBe(undefined)
 
     // Test idempotent closeWriting
-    const ch2 = Ch.of<number>()
+    const ch2 = new Ch<number>()
     ch2.closeWriting()
     ch2.closeWriting() // Should not throw
     ch2.closeWriting() // Should not throw
@@ -101,7 +101,7 @@ describe('Bug Fixes', () => {
     expect(ch2.doneWriting).toBe(true)
 
     // Test select with buffered channel write attempts
-    const ch3 = Ch.of<number>(1)
+    const ch3 = new Ch<number>(1)
     const writeAttempt = ch3.writeAttempt(123, value => ({
       value: `wrote ${value}`
     }))

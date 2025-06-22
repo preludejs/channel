@@ -1,14 +1,14 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 import { afterRandom } from './test.js'
 
 test('write, read on semaphore', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
   ch.writeIgnore(3)
   await expect(ch.read()).resolves.toEqual(3)
 })
 
 test('two delayed writes, two reads', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
   afterRandom(100, () => ch.write(3))
   afterRandom(100, () => ch.write(5))
   const a = await ch.read()
@@ -17,7 +17,7 @@ test('two delayed writes, two reads', async () => {
 })
 
 test('tryWrite should return true when write succeeds', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
 
   // Start a reader
   const readPromise = ch.read()
@@ -31,7 +31,7 @@ test('tryWrite should return true when write succeeds', async () => {
 })
 
 test('tryWrite should return false when channel is closed', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
 
   // Close the channel
   ch.closeWriting()
@@ -42,7 +42,7 @@ test('tryWrite should return false when channel is closed', async () => {
 })
 
 test('tryWrite should succeed with buffered channels', async () => {
-  const ch = Ch.of<number>(2)
+  const ch = new Ch<number>(2)
 
   // Should succeed up to buffer capacity
   await expect(ch.maybeWrite(1)).resolves.toBe(true)

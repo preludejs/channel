@@ -1,7 +1,7 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 
 test('maybeRead should return value when available, undefined when done', async () => {
-  const ch = Ch.of<number>(1) // Use buffered channel
+  const ch = new Ch<number>(1) // Use buffered channel
 
   // Write a value and close
   ch.writeIgnore(42)
@@ -17,7 +17,7 @@ test('maybeRead should return value when available, undefined when done', async 
 })
 
 test('maybeRead should return undefined when channel is done', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
 
   // Close channel without writing anything
   ch.closeWriting()
@@ -27,7 +27,7 @@ test('maybeRead should return undefined when channel is done', async () => {
 })
 
 test('maybeRead should return values when available', async () => {
-  const ch = Ch.of<number>(3) // Buffered channel with capacity 3
+  const ch = new Ch<number>(3) // Buffered channel with capacity 3
 
   // Write multiple values
   ch.writeIgnore(1)
@@ -47,7 +47,7 @@ test('maybeRead should return values when available', async () => {
 })
 
 test('closeWriting should be idempotent - not throw when called twice', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
 
   // First close should work
   ch.closeWriting()

@@ -1,9 +1,9 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 import { afterRandom, sleep } from './test.js'
 import * as Cmp from '@prelude/cmp'
 
 test('simple', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
   const timeline: unknown[] = []
 
   ch.write(3).then(() => timeline.push(['enqueued', 3]))
@@ -30,7 +30,7 @@ test('simple', async () => {
 
 test('delayed receive', async () => {
   const delayedNumber = (value: number) => {
-    const ch = Ch.of<number>()
+    const ch = new Ch<number>()
     setTimeout(() => {
       ch.write(value)
     }, Math.random() * 100)
@@ -44,14 +44,14 @@ test('delayed receive', async () => {
 })
 
 test('two delayed writes, two reads', async () => {
-  const a = Ch.of<number>()
+  const a = new Ch<number>()
   afterRandom(1000, () => a.write(3))
   afterRandom(1000, () => a.write(5))
   expect((await a.read()) + (await a.read())).toEqual(8)
 })
 
 test('async iterable consumer', async () => {
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
   sleep(100).then(() => ch.write(3))
   sleep(200).then(() => ch.write(5))
   sleep(300).then(() => {
@@ -72,7 +72,7 @@ test('concurrent map', async () => {
     return async function* (values: Iterable<T>) {
       let index = 0
       const input = Ch.ofIterable(values)
-      const output = Ch.of<U>()
+      const output = new Ch<U>()
       Promise.allSettled(
         Array.from({ length: concurrency }, async (_, worker) => {
           for await (const value of input) {

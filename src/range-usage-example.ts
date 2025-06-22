@@ -1,4 +1,4 @@
-import * as Ch from './index.js'
+import Ch from './index.js'
 
 /**
  * Example demonstrating the difference between JavaScript and Go semantics
@@ -8,7 +8,7 @@ import * as Ch from './index.js'
 async function jsSemantics() {
   console.log('=== JavaScript Semantics (Default) ===')
 
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
 
   // Fill with some data
   ch.writeIgnore(1)
@@ -39,7 +39,7 @@ async function jsSemantics() {
 async function goSemantics() {
   console.log('=== Go Semantics (via .range) ===')
 
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
 
   // Fill with some data
   ch.writeIgnore(1)
@@ -67,7 +67,7 @@ async function goSemantics() {
 async function producerConsumerExample() {
   console.log('=== Producer-Consumer Pattern ===')
 
-  const ch = Ch.of<string>()
+  const ch = new Ch<string>()
 
   // Producer (simulates a background task)
   const producer = async () => {
@@ -99,7 +99,7 @@ async function producerConsumerExample() {
 async function multipleConsumersExample() {
   console.log('=== Multiple Consumers (Competitive) ===')
 
-  const ch = Ch.of<number>()
+  const ch = new Ch<number>()
 
   // Producer
   const producer = async () => {
@@ -132,7 +132,7 @@ async function multipleConsumersExample() {
 async function bufferedChannelExample() {
   console.log('=== Buffered Channel Example ===')
 
-  const ch = Ch.of<string>(3) // Buffer size of 3
+  const ch = new Ch<string>(3) // Buffer size of 3
 
   // Fill buffer immediately
   ch.writeIgnore('first')
