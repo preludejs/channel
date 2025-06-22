@@ -24,6 +24,43 @@ npm i -E @prelude/channel
 import * as Ch from '@prelude/channel'
 ```
 
+## Comparision with go channels
+
+#### Go's `range`
+
+Go's `for v := range ch` has slightly different semantics than async iteration in JavaScript.
+
+In JavaScript generator is closed when breaking from the loop.
+
+#### Comma-OK Go's Idiom
+
+Go's `v, ok := <-ch` pattern is supported through:
+
+`await ch.maybeRead()` which returns `undefined` when channel is closed or value if not.
+
+`await ch.next()` returns `{ done: boolean, value: undefined | T }` ie. AsyncIterableResult.
+
+#### Go's `select` with `default` Case
+
+Go's select statement with a default case for non-blocking behavior is supported through:
+
+`Ch.maybeSelect([ch1, ch2, writeAttempt])` which returns immediately with a result if any channel operation can proceed, or `undefined` if none are ready (equivalent to Go's default case).
+
+```ts
+// Go equivalent: select { case v := <-ch1: ...; case ch2 <- val: ...; default: ... }
+const result = Ch.maybeSelect([ch1, ch2.writeAttempt(val, v => ({value: v}))])
+if (result) {
+  // One of the channel operations succeeded
+  console.log('Got:', result.value)
+} else {
+  // Default case - no operations were ready
+  console.log('No channels ready, doing something else')
+}
+```
+
+#### No Comma-OK Idiom
+Go's `v, ok := <-ch` pattern isn't directly supported. The `maybeRead()` method partially addresses this but isn't identical.
+
 # License
 
 ```
