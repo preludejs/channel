@@ -2,7 +2,6 @@ name: Test
 on:
   push:
     branches:
-      - master
   pull_request:
     types: [opened, synchronize, reopened]
 jobs:
@@ -10,29 +9,27 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [18.x]
+        node-version: [22.x]
     steps:
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
+
           # Shallow clones should be disabled for a better relevancy of SQ analysis.
           fetch-depth: 0
 
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
-      - uses: pnpm/action-setup@v2.2.2
-        with:
-          version: 7.12.2
+      - uses: pnpm/action-setup@v4
 
       - run: pnpm i
 
-      - run: make test
+      - run: pnpm t
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
+        uses: SonarSource/sonarqube-scan-action@v5
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
