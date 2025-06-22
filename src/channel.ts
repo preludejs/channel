@@ -231,6 +231,15 @@ export const writeIgnore = <T>(channel: Channel<T>, value: T): void => {
   })
 }
 
+/** @returns all values that was possible to read immediatelly, aka all pending writes. */
+export const consumeWrites = <T>(channel: Channel<T>): T[] => {
+  const values: T[] = []
+  while (channel.writes.length > 0) {
+    values.push(consumeWrite(channel))
+  }
+  return values
+}
+
 /**
  * Registers callback to be called when channel has done writing.
  * Callback is called immediatelly if channel is already closed for writing.
